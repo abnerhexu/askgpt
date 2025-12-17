@@ -126,6 +126,8 @@ type ConfigFile struct {
 
 func getPrompt(task, input string) string {
 	switch task {
+	case "chat":
+		return input
 	case "translate-en":
 		return "Translate the following text into English:\n\n" + input
 	case "translate-zh":
@@ -382,6 +384,7 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "  %-20s Run a specific task\n", "<task>")
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "  Available tasks:")
+	fmt.Fprintf(os.Stderr, "    %-18s Start a chat session without prompt template\n", "chat")
 	fmt.Fprintf(os.Stderr, "    %-18s Translate text to English\n", "translate-en")
 	fmt.Fprintf(os.Stderr, "    %-18s Translate text to Chinese\n", "translate-zh")
 	fmt.Fprintf(os.Stderr, "    %-18s Summarize content\n", "summarize")
@@ -389,10 +392,6 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "    %-18s Any other string is sent as a direct prompt\n", "(direct prompt)")
 	fmt.Fprintln(os.Stderr)
 
-	fmt.Fprintln(os.Stderr, "Examples:")
-	fmt.Fprintf(os.Stderr, "  %s set-model gpt-oss-20b\n", base)
-	fmt.Fprintf(os.Stderr, "  %s translate-en \"Hello World\"\n", base)
-	fmt.Fprintf(os.Stderr, "  %s \"How are you?\"\n", base)
 }
 
 func runShowConfig() int {
@@ -489,7 +488,7 @@ const bashCompletion = `_askgpt_completion() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="show-config set-url set-model set-key translate-en translate-zh summarize explain completion"
+    opts="show-config set-url set-model set-key chat translate-en translate-zh summarize explain completion"
 
     if [[ ${COMP_CWORD} -eq 1 ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
@@ -508,6 +507,7 @@ _askgpt() {
         'set-url:Set OpenAI API URL'
         'set-model:Set OpenAI Model'
         'set-key:Set OpenAI API Key'
+        'chat:Start a chat session without prompt template'
         'translate-en:Translate text to English'
         'translate-zh:Translate text to Chinese'
         'summarize:Summarize content'
@@ -520,12 +520,13 @@ _askgpt() {
 _askgpt
 `
 
-const fishCompletion = `set -l commands show-config set-url set-model set-key translate-en translate-zh summarize explain completion
+const fishCompletion = `set -l commands show-config set-url set-model set-key chat translate-en translate-zh summarize explain completion
 complete -c askgpt -f
 complete -c askgpt -n "not __fish_seen_subcommand_from $commands" -a "show-config" -d "Show current configuration"
 complete -c askgpt -n "not __fish_seen_subcommand_from $commands" -a "set-url" -d "Set OpenAI API URL"
 complete -c askgpt -n "not __fish_seen_subcommand_from $commands" -a "set-model" -d "Set OpenAI Model"
 complete -c askgpt -n "not __fish_seen_subcommand_from $commands" -a "set-key" -d "Set OpenAI API Key"
+complete -c askgpt -n "not __fish_seen_subcommand_from $commands" -a "chat" -d "Start a chat session without prompt template"
 complete -c askgpt -n "not __fish_seen_subcommand_from $commands" -a "translate-en" -d "Translate text to English"
 complete -c askgpt -n "not __fish_seen_subcommand_from $commands" -a "translate-zh" -d "Translate text to Chinese"
 complete -c askgpt -n "not __fish_seen_subcommand_from $commands" -a "summarize" -d "Summarize content"
