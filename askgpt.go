@@ -311,7 +311,14 @@ func doStreamingChat(client *http.Client, cfg AskGPTConfig, messages []Message) 
 		return "", err
 	}
 
-	httpReq, err := http.NewRequest("POST", cfg.URL, bytes.NewBuffer(jsonData))
+	url := strings.TrimSpace(cfg.URL)
+	if strings.HasSuffix(url, "/v1") {
+		url += "/chat/completions"
+	} else if strings.HasSuffix(url, "/v1/") {
+		url += "chat/completions"
+	}
+
+	httpReq, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", err
 	}
