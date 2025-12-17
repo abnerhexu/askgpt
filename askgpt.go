@@ -360,15 +360,39 @@ func doStreamingChat(client *http.Client, cfg AskGPTConfig, messages []Message) 
 }
 
 func usage() {
-	base := filepath.Base(os.Args[0])
-	fmt.Fprintf(os.Stderr, "Usage:\n")
-	fmt.Fprintf(os.Stderr, "  %s <task>\n", base)
-	fmt.Fprintf(os.Stderr, "  %s show-config\n", base)
-	fmt.Fprintf(os.Stderr, "  %s set-url [value]\n", base)
-	fmt.Fprintf(os.Stderr, "  %s set-model [value]\n", base)
-	fmt.Fprintf(os.Stderr, "  %s set-key [value]\n", base)
+	fmt.Fprintln(os.Stderr, "     ___           _______. __  ___   _______ .______   .___________.")
+	fmt.Fprintln(os.Stderr, "    /   \\         /       ||  |/  /  /  _____||   _  \\  |           |")
+	fmt.Fprintln(os.Stderr, "   /  ^  \\       |   (----`|  '  /  |  |  __  |  |_)  | `---|  |----`")
+	fmt.Fprintln(os.Stderr, "  /  /_\\  \\       \\   \\    |    <   |  | |_ | |   ___/      |  |     ")
+	fmt.Fprintln(os.Stderr, " /  _____  \\  .----)   |   |  .  \\  |  |__| | |  |          |  |     ")
+	fmt.Fprintln(os.Stderr, "/__/     \\__\\ |_______/    |__|\\__\\  \\______| | _|          |__|     ")
 	fmt.Fprintln(os.Stderr)
-	fmt.Fprintln(os.Stderr, "Tasks: translate-en, translate-zh, summarize, explain, or direct prompt")
+	base := filepath.Base(os.Args[0])
+	fmt.Fprintf(os.Stderr, "Usage: %s [command] [arguments]\n\n", base)
+
+	fmt.Fprintln(os.Stderr, "Configuration:")
+	fmt.Fprintf(os.Stderr, "  %-20s Show current configuration\n", "show-config")
+	fmt.Fprintf(os.Stderr, "  %-20s Set OpenAI API URL\n", "set-url <value>")
+	fmt.Fprintf(os.Stderr, "  %-20s Set OpenAI Model (e.g., gpt-4o)\n", "set-model <value>")
+	fmt.Fprintf(os.Stderr, "  %-20s Set OpenAI API Key\n", "set-key <value>")
+	fmt.Fprintf(os.Stderr, "  %-20s Generate completion script\n", "completion <shell>")
+	fmt.Fprintln(os.Stderr)
+
+	fmt.Fprintln(os.Stderr, "Tasks:")
+	fmt.Fprintf(os.Stderr, "  %-20s Run a specific task\n", "<task>")
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, "  Available tasks:")
+	fmt.Fprintf(os.Stderr, "    %-18s Translate text to English\n", "translate-en")
+	fmt.Fprintf(os.Stderr, "    %-18s Translate text to Chinese\n", "translate-zh")
+	fmt.Fprintf(os.Stderr, "    %-18s Summarize content\n", "summarize")
+	fmt.Fprintf(os.Stderr, "    %-18s Explain content\n", "explain")
+	fmt.Fprintf(os.Stderr, "    %-18s Any other string is sent as a direct prompt\n", "(direct prompt)")
+	fmt.Fprintln(os.Stderr)
+
+	fmt.Fprintln(os.Stderr, "Examples:")
+	fmt.Fprintf(os.Stderr, "  %s set-model gpt-oss-20b\n", base)
+	fmt.Fprintf(os.Stderr, "  %s translate-en \"Hello World\"\n", base)
+	fmt.Fprintf(os.Stderr, "  %s \"How are you?\"\n", base)
 }
 
 func runShowConfig() int {
@@ -460,6 +484,70 @@ func runSetCommand(cmd string, maybeValue string) int {
 	return 0
 }
 
+const bashCompletion = `_askgpt_completion() {
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    opts="show-config set-url set-model set-key translate-en translate-zh summarize explain completion"
+
+    if [[ ${COMP_CWORD} -eq 1 ]]; then
+        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+        return 0
+    fi
+}
+complete -F _askgpt_completion askgpt
+`
+
+const zshCompletion = `#compdef askgpt
+
+_askgpt() {
+    local -a commands
+    commands=(
+        'show-config:Show current configuration'
+        'set-url:Set OpenAI API URL'
+        'set-model:Set OpenAI Model'
+        'set-key:Set OpenAI API Key'
+        'translate-en:Translate text to English'
+        'translate-zh:Translate text to Chinese'
+        'summarize:Summarize content'
+        'explain:Explain content'
+        'completion:Generate completion script'
+    )
+    _describe -t commands 'commands' commands
+}
+
+_askgpt
+`
+
+const fishCompletion = `set -l commands show-config set-url set-model set-key translate-en translate-zh summarize explain completion
+complete -c askgpt -f
+complete -c askgpt -n "not __fish_seen_subcommand_from $commands" -a "show-config" -d "Show current configuration"
+complete -c askgpt -n "not __fish_seen_subcommand_from $commands" -a "set-url" -d "Set OpenAI API URL"
+complete -c askgpt -n "not __fish_seen_subcommand_from $commands" -a "set-model" -d "Set OpenAI Model"
+complete -c askgpt -n "not __fish_seen_subcommand_from $commands" -a "set-key" -d "Set OpenAI API Key"
+complete -c askgpt -n "not __fish_seen_subcommand_from $commands" -a "translate-en" -d "Translate text to English"
+complete -c askgpt -n "not __fish_seen_subcommand_from $commands" -a "translate-zh" -d "Translate text to Chinese"
+complete -c askgpt -n "not __fish_seen_subcommand_from $commands" -a "summarize" -d "Summarize content"
+complete -c askgpt -n "not __fish_seen_subcommand_from $commands" -a "explain" -d "Explain content"
+complete -c askgpt -n "not __fish_seen_subcommand_from $commands" -a "completion" -d "Generate completion script"
+`
+
+func runCompletion(shell string) int {
+	switch shell {
+	case "bash":
+		fmt.Print(bashCompletion)
+	case "zsh":
+		fmt.Print(zshCompletion)
+	case "fish":
+		fmt.Print(fishCompletion)
+	default:
+		fmt.Fprintf(os.Stderr, "Unsupported shell: %s. Supported: bash, zsh, fish\n", shell)
+		return 1
+	}
+	return 0
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		usage()
@@ -470,6 +558,15 @@ func main() {
 	switch cmd {
 	case "show-config":
 		os.Exit(runShowConfig())
+	case "completion":
+		shell := ""
+		if len(os.Args) >= 3 {
+			shell = os.Args[2]
+		}
+		os.Exit(runCompletion(shell))
+	case "-h", "help", "--help":
+		usage()
+		os.Exit(0)
 	case "set-url", "set-model", "set-key":
 		val := ""
 		if len(os.Args) >= 3 {

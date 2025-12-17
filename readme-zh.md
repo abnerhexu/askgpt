@@ -75,6 +75,31 @@ askgpt set-key sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ---
 
+## ⌨️ 自动补全
+
+`askgpt` 支持 `bash`、`zsh` 和 `fish` 的命令行自动补全。
+
+### Bash
+在您的 `~/.bashrc` 中添加：
+```bash
+source <(askgpt completion bash)
+```
+
+### Zsh
+生成补全脚本并将其放置在您的 `$fpath` 路径下的某个目录中：
+```zsh
+askgpt completion zsh > _askgpt
+mv _askgpt /path/to/your/fpath/
+```
+
+### Fish
+在您的 `~/.config/fish/config.fish` 中添加，或直接运行：
+```fish
+askgpt completion fish | source
+```
+
+---
+
 ## 🧪 使用方法
 
 ### 基本任务
