@@ -79,6 +79,31 @@ askgpt set-key sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ---
 
+## ⌨️ Autocompletion
+
+`askgpt` supports autocompletion for `bash`, `zsh`, and `fish`.
+
+### Bash
+Add the following to your `~/.bashrc`:
+```bash
+source <(askgpt completion bash)
+```
+
+### Zsh
+Generate the completion script and place it in a directory within your `$fpath`:
+```zsh
+askgpt completion zsh > _askgpt
+mv _askgpt /path/to/your/fpath/
+```
+
+### Fish
+Add the following to your `~/.config/fish/config.fish` or run directly:
+```fish
+askgpt completion fish | source
+```
+
+---
+
 ## 🧪 Usage
 
 ### Basic Task
