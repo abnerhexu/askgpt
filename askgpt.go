@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -253,7 +254,7 @@ func readInput(prompt string) (string, error) {
 
 		if errors.Is(err, io.EOF) {
 			if trimmedRight == "" && len(lines) == 0 {
-				return "", nil
+				return "", err // Return io.EOF when Ctrl+D is pressed on an empty line
 			}
 			if trimmedRight != "" {
 				lines = append(lines, trimmedRight)
@@ -369,13 +370,7 @@ func doStreamingChat(client *http.Client, cfg AskGPTConfig, messages []Message) 
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "     ___           _______. __  ___   _______ .______   .___________.")
-	fmt.Fprintln(os.Stderr, "    /   \\         /       ||  |/  /  /  _____||   _  \\  |           |")
-	fmt.Fprintln(os.Stderr, "   /  ^  \\       |   (----`|  '  /  |  |  __  |  |_)  | `---|  |----`")
-	fmt.Fprintln(os.Stderr, "  /  /_\\  \\       \\   \\    |    <   |  | |_ | |   ___/      |  |     ")
-	fmt.Fprintln(os.Stderr, " /  _____  \\  .----)   |   |  .  \\  |  |__| | |  |          |  |     ")
-	fmt.Fprintln(os.Stderr, "/__/     \\__\\ |_______/    |__|\\__\\  \\______| | _|          |__|     ")
-	fmt.Fprintln(os.Stderr)
+	printTitle() // Call printTitle here
 	base := filepath.Base(os.Args[0])
 	fmt.Fprintf(os.Stderr, "Usage: %s [command] [arguments]\n\n", base)
 
@@ -556,6 +551,58 @@ func runCompletion(shell string) int {
 	return 0
 }
 
+func printTitle() {
+	titles := []string{
+		// starwars (backticks replaced with ~)
+		`     ___           _______. __  ___   _______ .______   .___________.
+    /   \         /       ||  |/  /  /  _____||   _  \  |           |
+   /  ^  \       |   (----~|  '  /  |  |  __  |  |_)  | ~---|  |----~
+  /  /_\  \       \   \    |    <   |  | |_ | |   ___/      |  |     
+ /  _____  \  .----)   |   |  .  \  |  |__| | |  |          |  |     
+/__/     \__\ |_______/    |__|\__\  \______| | _|          |__|     `,
+
+		// standard
+		`    _    ____  _  ______ ____ _____ 
+   / \  / ___|| |/ / ___|  _ \_   _|
+  / _ \ \___ \| ' / |  _| |_) || |  
+ / ___ \ ___) | . \ |_| |  __/ | |  
+/_/   \_\____/|_|\_\____|_|    |_|  `,
+
+		// doom (backticks replaced with ~)
+		`  ___   _____ _   _______ ______ _____ 
+ / _ \ /  ___| | / /  __ \| ___ \_   _|
+/ /_\ \\ ~--.| |/ /| |  \/| |_/ / | |  
+|  _  | ~--. \    \| | __ |  __/  | |  
+| | | |/\__/ / |\  \ |_\ \| |     | |  
+\_| |_/\____/\_| \_/\____/\_|     \_/  `,
+
+		// slant
+		`    ___   _____ __ ____________  ______
+   /   | / ___// //_/ ____/ __ \/_  __/
+  / /| | \__ \/ ,< / / __/ /_/ / / /   
+ / ___ |___/ / /| / /_/ / ____/ / /    
+/_/  |_/____/_/ |_\____/_/     /_/     `,
+
+		// speed
+		`____________________ _________________________
+___    |_  ___/__  //_/_  ____/__  __ \__  __/
+__  /| |____ \__  ,<  _  / __ __  /_/ /_  /   
+_  ___ |___/ /_  /| | / /_/ / _  ____/_  /    
+/_/  |_/____/ /_/ |_| \____/  /_/     /_/     `,
+
+		// letters
+		`  AAA    SSSSS  KK  KK   GGGG  PPPPPP  TTTTTTT 
+ AAAAA  SS      KK KK   GG  GG PP   PP   TTT   
+AA   AA  SSSSS  KKKK   GG      PPPPPP    TTT   
+AAAAAAA      SS KK KK  GG   GG PP        TTT   
+AA   AA  SSSSS  KK  KK  GGGGGG PP        TTT   `,
+	}
+
+	t := titles[rand.Intn(len(titles))]
+	fmt.Fprintln(os.Stderr, strings.ReplaceAll(t, "~", "`"))
+	fmt.Fprintln(os.Stderr)
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		usage()
@@ -611,14 +658,20 @@ func main() {
 	client := &http.Client{Timeout: httpTimeout}
 	var messages []Message
 
+	printTitle() // Display title art
 	fmt.Fprintln(os.Stderr, "Input tips:")
 	fmt.Fprintln(os.Stderr, "- Single line: type and press Enter")
 	fmt.Fprintln(os.Stderr, "- Multi line: end a line with \\ to continue, or type :paste then finish with :end")
 	fmt.Fprintln(os.Stderr, "- Quit: type quit and press Enter")
+	fmt.Fprintln(os.Stderr, "- Exit: press Ctrl+D")
 	fmt.Fprintln(os.Stderr, "")
 
 	userInput, err := readInput("Your message:\n> ")
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			fmt.Fprintln(os.Stderr, "Goodbye!")
+			return
+		}
 		fmt.Fprintf(os.Stderr, "Error reading input: %v\n", err)
 		os.Exit(1)
 	}
@@ -646,6 +699,10 @@ func main() {
 		fmt.Fprintln(os.Stderr, "\n---")
 		nextInput, err := readInput("Your next message:\n> ")
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				fmt.Fprintln(os.Stderr, "Goodbye!")
+				break
+			}
 			fmt.Fprintf(os.Stderr, "Error reading input: %v\n", err)
 			os.Exit(1)
 		}
